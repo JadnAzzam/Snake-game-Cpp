@@ -1,1 +1,1 @@
-# Snake_game___C-
+Quick fun snake game using C++
