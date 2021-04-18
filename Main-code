@@ -1,0 +1,261 @@
+#include<iostream>
+#include<conio.h>
+#include<vector>
+#include<Windows.h>
+using namespace std;
+
+// global variable to store direction of snake
+//char GlobalVariable; 40
+
+bool gameover = false; //bool to determine when to stop the code 
+const int width = 40;  // because we add a space after character
+						// hence the width length is 2xheight to obtain a square shape
+const int height = 20;
+// for snake head position
+int x = 1;
+int y = 1;
+int fruitX, fruitY; // for fruit position 
+int score = 0; // initializzes score to zero and keeps count thru the game 
+
+// enum types for the movement keys used in the game 
+enum Movement { STAY = 0, leftt, rightt, up, down };
+//stay doesnt move the snake head in any direction
+// meaning it stays in place 
+
+
+
+// for the tail, i will make two vectors of 
+vector<int> tailX(0, 0);
+vector<int> tailY(0, 0);
+int snakeLength = 0;
+
+void SetFruitSpawnPosition();
+
+void Start() {
+	gameover = false; // initialize bool to false 
+
+	SetFruitSpawnPosition(); 
+}
+
+// defined below 
+// but needed in the input function so i included it here 
+void Update(); 
+
+
+Movement  movee;  // global variable so i can use it for switch in SetHeadPosition 
+void Input() {
+	Movement move = STAY; 
+	if (_kbhit()) { //determines if key has been pressed 
+		switch (_getch()) { // returns the char without waiting for return key
+			//sets the  variales move one of the enum types according to w s a d 
+		case 'w':
+			move = up;
+			Update(); //moves the snake head 
+								   //and updates tail if heads eats fruit 
+			break;
+		case 's':
+			move = down;
+			Update();
+			break;
+		case 'a':
+			move = leftt;
+			Update();
+			break;
+		case 'd':
+			move = rightt;
+			Update();
+			break;
+		default:
+			Update();
+			break;
+		}
+
+	}
+	movee = move;
+}
+
+
+
+
+int headX;  // global variables used in another function 
+int headY;
+
+void SetTailPosition() {
+	if (tailX.size() == 0) {
+		return;
+	}
+
+	int previousX, previousY;
+	int prevX = tailX[0];
+	int prevY = tailY[0];
+
+	tailX[0] = headX;
+	tailY[0] = headY;
+
+	for (int i = 1; i < tailX.size(); i++) {
+		previousX = tailX[i];
+		previousY = tailY[i];
+		tailX[i] = prevX;
+		tailY[i] = prevY;
+		prevX = previousX;
+		prevY = previousY;
+	}
+	return;
+}
+
+
+
+void ClearScreen() {
+	system("cls"); //Causes flickering 
+
+	COORD cursorPosition;
+	cursorPosition.X = 0;
+	cursorPosition.Y = 0;
+
+	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), cursorPosition);
+}
+
+
+
+
+void DrawWorld() { //use two nested loops to decide what to print on screen 
+	// to print out the game for the user 20
+	system("cls");
+	
+	// the two nested loops to print the game in matrix like structure
+	for (int i = 0; i < 20; i++) { // i for the row length 
+		
+		for (int j = 0; j < 40; j++) { // j for the column height 
+
+			 if (i == fruitY && j == fruitX) { //print the fruit location
+			cout << "# ";
+			}
+			 else if (i == y && j == x) { // head of the snake
+				cout << "O ";
+			}
+			 else if (j == 39) { // end border
+				cout << " .";
+				cout << endl;
+			}
+			else if (i == 0) { //left border .
+				cout << ". ";
+
+			}
+			else if (i == 19) { //right border
+				cout << ". ";
+			}
+			else if (j == 0) { // beginning border
+				cout << ". ";
+			}
+			else {
+				 cout << "  "; // 2 empty spaces 
+			 }
+			
+			
+			// to print the tail
+			// we need to go through the tailX and tailY vectors
+			// so i used a for loop
+
+			// I did not use the check for tail function as i found this to be easier 
+			// and it has the same runtime 
+			for (int k = 0; k < tailX.size(); k++) {
+				if (tailX[k] == j && tailY[k] == i) {
+					cout << "* ";
+				}
+			}
+			
+		}
+	}
+}
+
+
+
+
+void DrawUI() { //prints the score 
+	cout << endl;
+	cout << "Score Lea =" << score << endl;
+	cout << "snake length= " << snakeLength;
+
+}
+
+
+
+void Render() {
+	ClearScreen();
+	DrawWorld();
+	DrawUI();
+}
+
+
+// function respawns the fruit in a random place in the square inbetween the boundaries 
+void SetFruitSpawnPosition() {
+	fruitX = 1 + (rand() % (width - 2)); //display fruit in a random place)
+	fruitY = 1 + (rand() % (height - 2));
+}
+
+
+
+void SetHeadPosition() {
+	// to move the snake head 
+	switch (movee){
+	case leftt:
+		x--;
+		break;
+	case rightt:
+		x++;
+		break;
+	case up:
+		y--;
+		break;
+	case down:
+		y++;
+		break;
+	default: // snake doesn't move 39 19
+		break;
+	}
+
+	if (x >= 39 || x <= 0 || y>= 19 || y<=0){ // checks if the head overlaps/touches the borders and ends the game if yes 
+		gameover = true;
+	}
+
+}
+
+
+void Update() {
+	SetTailPosition();
+	SetHeadPosition();
+
+	//cheks for collisions between head and tail
+	//if collision exists then the game ends 
+	for (int i = 0; i < tailX.size(); i++) {
+		if (tailX[i] == headX && tailY[i] == headY) {
+			gameover = true;
+		}
+	}
+
+	// if head overlaps with fruit it eats is
+	//increases the score
+	//and updates the tail
+	if (x == fruitX && y == fruitY) {
+		score = score + 10;
+		snakeLength = snakeLength + 1;
+		/*
+		tailX.push_back(fruitX);     THE KEPT GIVING ERRORS SO I SUBMITTED IT WITH THESE TWO LINES COMMENTED BUT THE CODE IS STILL THERE
+		tailY.push_back(fruitY);*/
+		Start();
+	}
+
+
+}
+
+int main() {
+
+	Start();
+	while (!gameover) {
+		Sleep(200); //waits 200ms before processing the next frame
+		Input();
+		Update();
+		Render();
+	}
+
+}
